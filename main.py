@@ -14,8 +14,7 @@ if __name__ == "__main__":
     generator = ArticleGenerator()
     html_output, local_image_path = generator.generate_article()
     html_output = audit_and_fix_links(html_output)
-    html_output = inject_faq_section(generator.my_llm,html_output)
-    
+    html_output = inject_faq_section(html_output, generator.my_llm)    
     if not html_output:
         print("❌ Article generation failed. Exiting.")
         exit()
