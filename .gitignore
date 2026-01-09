@@ -1,0 +1,83 @@
+# --- SEO Auto Poster Specifics ---
+# Session files (Keep these safe! They contain login cookies)
+*.session
+*.auth
+*.cookies
+cookies.json
+session.json
+selenium_session/
+puppeteer_userData/
+profile_data/
+
+# Automation Drivers & Logs
+chromedriver
+geckodriver
+msedgedriver
+*.log
+geckodriver.log
+chromedriver.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+chrome-debug.log
+
+# Generated Content (Don't clutter your repo with test posts)
+/screenshots/
+/downloads/
+/reports/
+/logs/
+*.png
+*.jpg
+*.jpeg
+*.mp4
+
+# --- Security & Environment (CRITICAL) ---
+# Never upload API keys or database passwords
+.env
+.env.local
+.env.*.local
+config.json
+secrets.yaml
+credentials.py
+
+# --- Python Standard ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+venv/
+env/
+ENV/
+.venv/
+
+# --- Node.js Standard ---
+node_modules/
+dist/
+.npm/
+.eslintcache
+.node_repl_history
+
+# --- IDE & OS Files ---
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
