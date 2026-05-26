@@ -7,8 +7,19 @@ load_dotenv()
 
 SERPER_API_KEY = os.getenv("SERPER_API_KEY")
 
-@tool("trend_keyword_tool")
-def trend_keyword_tool():
+
+# Use an explicit JSON schema dict in the decorator so CrewAI registers it at import time
+TOOL_ARGS_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "dummy_arg": {"type": "string", "description": "Dummy argument to satisfy strict API schema requirements.", "default": "dummy"}
+    },
+    "required": []
+}
+
+
+@tool("Trend Keyword Tool")
+def trend_keyword_tool(dummy_arg: str = "dummy"):
     """
     Find trending tech topics using Serper.dev (Google Search API).
     Returns a concise list of trending article-worthy topics.
@@ -59,3 +70,10 @@ def trend_keyword_tool():
     except Exception as e:
         print("⚠️ TrendKeywordTool Error:", e)
         return ["Fallback: Future of AI and automation"]
+
+
+# Attach JSON schema to the tool function object so the tool registry can see inputs
+try:
+    trend_keyword_tool.args = TOOL_ARGS_SCHEMA
+except Exception:
+    pass

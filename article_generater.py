@@ -1,19 +1,31 @@
 import os
 from dotenv import load_dotenv
 from crewai import Agent , Task , Crew ,LLM
+
+import crewai.llms.cache as _crewai_cache
+_crewai_cache.mark_cache_breakpoint = lambda msg: msg
+
 load_dotenv()
 from tools.trend_keyword_tool import trend_keyword_tool
 from tools.serp_tool import serper_fetch_tool
 from tools.image_search_tool import image_search_tool
 from tools.fetch_internal_links import get_all_internal_links
-KEY = os.getenv("GOOGLE_API_KEY")
+
+    
+KEY = os.getenv("GROQ_API_KEY")
 SERPER_API_KEY = os.getenv("SERPER_API_KEY")
 class ArticleGenerator:
     def __init__(self):
+        # self.my_llm = LLM(
+        #         api_key=KEY,
+        #         model="gemini/gemini-2.5-flash",
+        #     )
+        
         self.my_llm = LLM(
-                api_key=KEY,
-                model="gemini/gemini-2.5-flash",
-            )
+            api_key=KEY,
+            model="groq/llama-3.1-8b-instant",
+            temperature=0.1
+         )
 
     def trend_resarcher_agent(self):
         trend_researcher = Agent(
@@ -103,8 +115,8 @@ class ArticleGenerator:
         - Begin first sentence with focus keyword.
         - Use short paragraphs (< 120 words each).
         - Include transition words and active voice.
-        - Add internal link (/blog/…) and one external link (rel="noopener").for internal link use tool to fetch internal links.Use: 2–3 internal links. Must link to relevant existing articles from:https://readtechflow.com/.Use: 1–2 external links. Must point only to HIGH-AUTHORITY websites.External should be valid and authentic sources only like medium,reddit,news websites etc.Thats should be broken links.Make it sure that not be a spammy link.Only known trusted websites.
-        - Add at least one image with alt text containing the focus keyword.
+        - Add internal link (/blog/…) and one external link (rel="noopener").for internal link use tool to fetch internal links.Use: 10-12 internal links. Must link to relevant existing articles from:https://readtechflow.com/.Use: 3-5 external links. CRITICAL: External links MUST point to REAL, EXISTING articles from HIGH-AUTHORITY websites (Reuters, CNBC, Wired, TechCrunch, ArsTechnica, The Verge, etc.). DO NOT use placeholder URLs like 'medium.com/@yourprofile' - these will fail validation. Verify links exist before including them.
+        - DO NOT include any <img> tags in the content. The cover image will be added separately as featured image.
 
         6️⃣ Headings
         - Use one <h1>, multiple <h2>/<h3>; at least one contains focus keyword.
@@ -137,7 +149,7 @@ class ArticleGenerator:
                 description=(
                     "1. Write a complete SEO-optimized blog article using HTML only (no Markdown).\n"
                     "2. Follow a WordPress-friendly structure with meta tags, headings, and internal/external links.\n"
-                    "3. Include 3–5 <h2> sections, relevant <h3> subsections, and 1–2 <img> tags using /static/img/ paths."
+                    "3. Include 3–5 <h2> sections, relevant <h3> subsections. DO NOT include any <img> tags - the featured image will be added separately."
                     "4. Ensure the article includes a meta title (<60 chars), meta description (<160 chars), and is engaging and factual.\n"
                     "5. Output only the full HTML document (<!DOCTYPE html> ... </html>) with no Markdown or commentary.\n"
                     "6. Use atleast 1 number & 1 power word in the title."
@@ -171,9 +183,9 @@ class ArticleGenerator:
                 "3. Ensure it's ready for Medium publication."
                 "4. Check for internal and external links; add if missing."
                 "5. Overall content lenths should be between 1500 to 2000 words."
-                "6. External should be valid and authentic sources only like medium,reddit,news websites etc.Thats should be broken links.Make it sure that not be a spammy link."
-                "7. May you give this at the end article make it suitable place.Internal should be 10-12 links and external should be 3-5 links."
-                "8. External should be valid and authentic sources only like medium,reddit,news websites etc.Thats should be broken links.Make it sure that not be a spammy link.Only known trusted websites"
+                "6. CRITICAL: External links must be REAL, EXISTING articles from trusted sources (Reuters, CNBC, Wired, TechCrunch, ArsTechnica, The Verge, BBC, NYTimes, etc.). DO NOT use placeholder URLs. Verify each external link points to a real article."
+                "7. Include 10-12 internal links from https://readtechflow.com/ and 3-5 REAL external links to high-authority sources."
+                "8. Double-check that ALL external links are valid, working URLs to actual articles - NO placeholders, NO hypothetical links."
                 
             ),
             expected_output="Final polished article ready for publication.",
@@ -224,25 +236,22 @@ class ArticleGenerator:
                 "- Includes Focus Keyword near the start.\n"
                 "- Contains at least one power word (e.g., 'Amazing', 'Ultimate', 'Best', 'Complete', 'Proven', 'Guide').\n"
                 "- Contains at least one number (e.g., 'Top 10', '5 Ways', '3 Secrets').\n\n"
-                "✅ Focus Keyword appears in:\n"
-                "- The SEO Title (<title>) and near its beginning.\n"
-                "- The Meta Description (<meta name='description'>).\n"
-                "- The URL (convert to slug form like /blog/focus-keyword/ if missing).\n"
-                "- The first 100 words of the article body.\n"
-                "- At least one <h2> or <h3> subheading.\n"
-                "- The image alt text.\n\n"
+                "✅ Focus Keyword (3-4 keywords, comma-separated):\n"
+                "- Primary keyword (first) MUST appear in: SEO Title (<title>) at the beginning, Meta Description, URL slug, first 100 words.\n"
+                "- All 3-4 keywords should be distributed across: title, meta description, H2/H3 headings, and content body.\n"
+                "- Do NOT generate <img> tags - the featured image is handled separately.\n\n"
                 "✅ Content Optimization:\n"
                 "- Word count between 1500 and 2000.\n"
-                "- Keyword density around 1% (not zero, not excessive).\n"
+                "- Keyword density for all 3-4 keywords combined should be around 1% (not zero, not excessive).\n"
                 "- Add or modify text if needed to adjust density naturally.\n"
                 "- Include a Table of Contents (with <nav> or <ul>) after the introduction.\n"
-                "- Add at least one image (<img>) with alt text containing the Focus Keyword.\n"
-                "- Use short, readable paragraphs (<p>) under 120 words.\n\n"
+                "- Use short, readable paragraphs (<p>) under 120 words.\n"
+                "- DO NOT add any <img> tags to the article body.\n\n"
                 "✅ Links:\n"
                 "- Include at least one internal link (href='/blog/...').\n"
                 "- Include at least one external link (href='https://...') with rel='noopener' and target='_blank'.\n\n"
-                "- Internal should be 10-12 links and external should be 3-5 links"
-                "- External should be valid and authentic sources only like medium,reddit,news websites etc.Thats should be broken links.Make it sure that not be a spammy link.Only known trusted websites\n\n"
+                "- Internal should be 10-12 links and external should be 3-5 links\n"
+                "- CRITICAL: External links MUST be REAL, EXISTING articles from trusted sources (Reuters, CNBC, Wired, TechCrunch, ArsTechnica, The Verge, BBC, NYTimes, etc.). DO NOT use placeholder URLs like 'medium.com/@yourprofile'. Verify each link exists.\n\n"
                 "✅ SEO Title Formatting:\n"
                 "- Title length under 60 characters.\n"
                 "- Include the Focus Keyword near the start.\n"

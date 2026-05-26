@@ -4,8 +4,18 @@ from bs4 import BeautifulSoup
 import time
 from crewai.tools import tool
 
-@tool("fetch_internal_links")
-def get_all_internal_links():
+
+TOOL_ARGS_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "dummy_arg": {"type": "string", "description": "Dummy argument to satisfy strict API schema requirements.", "default": "dummy"}
+    },
+    "required": []
+}
+
+
+@tool("Fetch Internal Links Tool")
+def get_all_internal_links(dummy_arg: str = "dummy"):
     """
     Fetches all internal links from the given base URL."""
     base_url = "https://readtechflow.com/"
@@ -47,3 +57,10 @@ def get_all_internal_links():
         time.sleep(0.5)  # be polite, don’t overload server
 
     return internal_links
+
+
+# Attach JSON schema to the tool function object so the tool registry can see inputs
+try:
+    get_all_internal_links.args = TOOL_ARGS_SCHEMA
+except Exception:
+    pass
