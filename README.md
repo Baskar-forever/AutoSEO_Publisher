@@ -14,37 +14,40 @@ Built with CrewAI, the system features a deterministic validation middleware and
 
 ```mermaid
 graph TD
-    A[GitHub Actions Cron] --> B(Master Orchestrator: main.py)
 
-    subgraph Agentic Swarm (CrewAI)
+A[GitHub Actions Cron] --> B[Master Orchestrator: main.py]
+
+subgraph "Agentic Swarm - CrewAI"
     C[Trend Researcher] --> D[Content Planner]
     D --> E[Writer]
     E --> F[Editor]
     F --> G[Banner Designer]
     G --> H[SEO Expert]
-    end
+end
 
-    B -->|Triggers| C
+B -->|Triggers| C
 
-    subgraph Deterministic Middleware
+subgraph "Deterministic Middleware"
     I[link_audit.py]
     J[toc_generator.py]
     K[image_optimizer.py]
     L[faq_injector.py]
-    end
+end
 
-    H -->|Raw HTML| I
-    I --> J --> K --> L
+H -->|Raw HTML| I
+I --> J
+J --> K
+K --> L
 
-    subgraph Validation Loop
-    M{SEO Score Pass?}
+subgraph "Validation Loop"
+    M{SEO Score >= 80?}
     N[LLM Rewrite]
-    end
+end
 
-    L --> M
-    M -->|Fail| N
-    N --> M
-    M -->|Pass| O[WordPress REST API]
+L --> M
+M -->|Fail| N
+N --> M
+M -->|Pass| O[WordPress REST API]
 ```
 
 
