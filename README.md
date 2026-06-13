@@ -12,43 +12,9 @@ Built with CrewAI, the system features a deterministic validation middleware and
 
 ## System Architecture
 
-```mermaid
-graph TD
+The following diagram shows the complete AutoSEO Publisher workflow from trend discovery to automated WordPress publishing.
 
-A[GitHub Actions Cron] --> B[Master Orchestrator: main.py]
-
-subgraph "Agentic Swarm - CrewAI"
-    C[Trend Researcher] --> D[Content Planner]
-    D --> E[Writer]
-    E --> F[Editor]
-    F --> G[Banner Designer]
-    G --> H[SEO Expert]
-end
-
-B -->|Triggers| C
-
-subgraph "Deterministic Middleware"
-    I[link_audit.py]
-    J[toc_generator.py]
-    K[image_optimizer.py]
-    L[faq_injector.py]
-end
-
-H -->|Raw HTML| I
-I --> J
-J --> K
-K --> L
-
-subgraph "Validation Loop"
-    M{SEO Score >= 80?}
-    N[LLM Rewrite]
-end
-
-L --> M
-M -->|Fail| N
-N --> M
-M -->|Pass| O[WordPress REST API]
-```
+![AutoSEO Publisher Architecture](screenshots/AutoSEO_Publisher_Diagram.png)
 
 
 ## Core Design Principles
