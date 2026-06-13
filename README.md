@@ -1,69 +1,210 @@
-# 🤖 AutoSEO_Publisher
+# AutoSEO Publisher
 
-An enterprise-grade, zero-touch content generation pipeline powered by **CrewAI**. This system doesn't just write articles; it researches trends, generates media, injects JSON-LD schemas, audits links, and uses an **Agentic Self-Healing Loop** to guarantee an 80+ RankMath SEO score before autonomously deploying to WordPress via GitHub Actions.
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![CI/CD](https://github.com/yourusername/AutoSEO_Publisher/actions/workflows/auto_publish.yml/badge.svg)](https://github.com/yourusername/AutoSEO_Publisher/actions)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-## ✨ Key Features
+AutoSEO Publisher is an autonomous, agentic content pipeline that orchestrates LLM swarms to research, draft, optimize, and deploy production-ready SEO articles.
 
-* **Multi-Agent Swarm (CrewAI):** Utilizes specialized agents (Trend Researcher, Planner, Writer, Editor, Designer, and SEO Expert) to handle the entire editorial pipeline.
-* **Agentic SEO Reflection Loop:** The system scores its own generated HTML against strict RankMath SEO criteria (keyword density, slug length, title power words). If the score falls below 80/100, the pipeline halts and hands the HTML back to the LLM to autonomously rewrite and fix the issues.
-* **Media Optimization:** Automatically fetches relevant banner images, resizes them, and converts them to highly compressed `WebP` formats for optimal Core Web Vitals.
-* **Deterministic Middleware:** Uses Python (BeautifulSoup) to physically ping and audit generated URLs, inject `<nav>` Table of Contents, and append FAQ Schema markup (`application/ld+json`).
-* **CI/CD Automation:** Fully decoupled and Docker/Ubuntu ready. Runs entirely hands-free on a 3-day cron schedule via GitHub Actions.
+Built with CrewAI, the system features a deterministic validation middleware and an agentic self-healing loop that guarantees a minimum SEO threshold before pushing content to a live WordPress site through automated workflows.
+
+---
 
 ## 🏗️ System Architecture
 
-1. **Trend Discovery:** Scrapes Google Search (via Serper) for trending tech/AI topics.
-2. **Draft Generation:** Agents outline, write, and format a 1,500+ word HTML article.
-3. **Middleware Processing:** - Downloads and optimizes images.
-   - Injects dynamic TOC and FAQ schema.
-   - Audits external links to ensure they point to real, authoritative domains.
-4. **Validation Loop:** Validates SEO. If failed, it triggers a rewrite loop up to 2 times.
-5. **Deployment:** Pushes the finalized HTML, metadata, and featured image to the WordPress REST API.
+```mermaid
+graph TD
+    A[GitHub Actions Cron] --> B(Master Orchestrator: main.py)
 
-## ⚙️ Quick Start Setup
+    subgraph Agentic Swarm (CrewAI)
+    C[Trend Researcher] --> D[Content Planner]
+    D --> E[Writer]
+    E --> F[Editor]
+    F --> G[Banner Designer]
+    G --> H[SEO Expert]
+    end
 
-### 1. Prerequisites
-* Python 3.10+
-* A WordPress website with Application Passwords enabled.
-* API Keys for your LLM (OpenAI/Gemini) and Serper.dev.
+    B -->|Triggers| C
 
-### 2. Installation
-Clone the repository and install the dependencies:
+    subgraph Deterministic Middleware
+    I[link_audit.py]
+    J[toc_generator.py]
+    K[image_optimizer.py]
+    L[faq_injector.py]
+    end
+
+    H -->|Raw HTML| I
+    I --> J --> K --> L
+
+    subgraph Validation Loop
+    M{SEO Score Pass?}
+    N[LLM Rewrite]
+    end
+
+    L --> M
+    M -->|Fail| N
+    N --> M
+    M -->|Pass| O[WordPress REST API]
+```
+
+
+## Core Design Principles
+
+### Agentic Orchestration
+
+Specialized agents handle distinct phases of the editorial lifecycle, minimizing hallucination through focused, low-temperature (0.1) prompts.
+
+### Self-Healing Output
+
+If generated HTML fails deterministic SEO validation (for example, keyword density mismatches or missing image alt tags), the content is routed back to the LLM with validation feedback for automatic correction.
+
+### Stateless CI/CD
+
+Designed to run ephemerally on GitHub Actions Ubuntu runners with no persistent runtime dependencies.
+
+---
+
+# 🚀 Quick Start
+
+## Prerequisites
+
+- Python 3.10+
+- WordPress instance with Application Passwords enabled
+- API keys for your preferred LLM provider
+- Serper.dev API key
+
+## Local Development Setup
+
+### Clone the Repository
+
 ```bash
-git clone [https://github.com/Baskar-forever/AutoSEO_Publisher](https://github.com/Baskar-forever/AutoSEO_Publisher)
+git clone https://github.com/yourusername/AutoSEO_Publisher.git
 cd AutoSEO_Publisher
+```
+
+### Create a Virtual Environment
+
+```bash
+python -m venv venv
+```
+
+Linux / macOS:
+
+```bash
+source venv/bin/activate
+```
+
+Windows:
+
+```bash
+venv\Scripts\activate
+```
+
+### Install Dependencies
+
+```bash
 pip install -r requirements.txt
-3. Environment Variables
-Create a .env file in the root directory (refer to .env.example):
+```
 
-Code snippet
-# LLM Configuration
-OPENAI_API_KEY="your_api_key_here"
-MODEL="gemini/gemini-2.5-flash" # Or "gpt-4o"
+### Configure Environment Variables
 
-# Search Tools
-SERPER_API_KEY="your_serper_api_key_here"
+```bash
+cp .env.example .env
+```
 
-# WordPress Configuration
-WP_URL="[https://yourwebsite.com](https://yourwebsite.com)"
-WP_USER="your_wp_username"
-WP_APP_PASSWORD="your_wp_application_password_here"
-🚀 Usage
-Run Locally:
-To test the pipeline on your local machine and publish a live post:
+Populate the `.env` file with your credentials.
 
-Bash
+---
+
+# ⚙️ Configuration Schema
+
+| Variable | Description | Required |
+|-----------|-------------|-----------|
+| OPENAI_API_KEY | LLM Provider API Key | Yes |
+| MODEL | Target Model (e.g. gemini/gemini-2.5-flash) | Yes |
+| SERPER_API_KEY | Search and Trend Discovery API Key | Yes |
+| WP_URL | WordPress Website URL | Yes |
+| WP_USER | WordPress Username | Yes |
+| WP_APP_PASSWORD | WordPress Application Password | Yes |
+
+---
+
+# 🛠️ Deployment Lifecycle
+
+## Manual Execution
+
+Run pipeline in safe mode (draft publish):
+
+```bash
+python main.py
+```
+
+Run pipeline and publish live:
+
+```bash
 python main.py --index
-(Note: Use --noindex to push a draft that blocks Google bots while you test).
+```
 
-Run via CI/CD (GitHub Actions):
-The repository includes a .github/workflows/auto_publish.yml file.
+Bypass validation and force publish:
 
-Go to your GitHub Repository Settings > Secrets and Variables > Actions.
+```bash
+python main.py --force
+```
 
-Add your .env variables as Repository Secrets.
+---
 
-The pipeline will automatically wake up and publish a new article every 3 days.
+## Automated CI/CD Execution
 
-🛡️ License
-Distributed under the MIT License. See LICENSE for more information.
+The repository includes a GitHub Actions workflow:
+
+```text
+.github/workflows/auto_publish.yml
+```
+
+The workflow can be configured to execute automatically on a recurring schedule.
+
+### Setup
+
+1. Navigate to:
+   Settings → Secrets and Variables → Actions
+
+2. Add all environment variables listed in the Configuration Schema as Repository Secrets.
+
+3. Enable GitHub Actions for the repository.
+
+4. Trigger manually or allow scheduled execution.
+
+---
+
+# 🤝 Contributing
+
+Contributions, issues, and feature requests are welcome.
+
+1. Fork the repository
+2. Create a feature branch
+
+```bash
+git checkout -b feature/AmazingFeature
+```
+
+3. Commit your changes
+
+```bash
+git commit -m "feat: Add AmazingFeature"
+```
+
+4. Push to GitHub
+
+```bash
+git push origin feature/AmazingFeature
+```
+
+5. Open a Pull Request
+
+---
+
+# 📄 License
+
+Distributed under the MIT License.
+
+See the LICENSE file for more information.
