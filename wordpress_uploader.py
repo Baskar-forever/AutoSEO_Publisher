@@ -578,7 +578,7 @@ def process_and_publish(html_content: str, local_image_path: str = None, noindex
         import re
         match = re.search(r'(static[/\\]img[/\\][^\s*]+)', local_image_path)
         if match:
-            clean_path = match.group(1).replace('*', '') 
+            clean_path = match.group(1).replace('*', '').replace('`', '').strip()
             print(f"🔍 Extracted clean image path: {clean_path}")
             media_id, new_image_url = upload_image_to_wordpress(clean_path)
         else:
