@@ -30,12 +30,19 @@ Rules:
 """
 
 def generate_faqs_with_llm(llm, html_content: str) -> list:
-    response = llm.invoke([
-        ("system", FAQ_SYSTEM_PROMPT),
-        ("human", html_content)
-    ])
+    # 1. Format messages EXACTLY as CrewAI expects: A list of dictionaries.
+    messages = [
+        {"role": "system", "content": FAQ_SYSTEM_PROMPT},
+        {"role": "user", "content": html_content}
+    ]
 
-    raw = response.content.strip()
+    try:
+        # 2. Use the official CrewAI .call() method
+        raw = llm.call(messages)
+        raw = raw.strip()
+    except Exception as e:
+        print(f"❌ FAQ generation failed: {e}")
+        return []
 
     try:
         data = json.loads(raw)

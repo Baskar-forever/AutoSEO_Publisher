@@ -9,10 +9,9 @@ import time
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse
 from langchain_google_genai import ChatGoogleGenerativeAI
+from article_generater import ArticleGenerator
 
-# Update this path if necessary
-ENV_PATH = "d:\\SEOarticleGeneration\\.env"
-load_dotenv(dotenv_path=ENV_PATH)
+load_dotenv()
 
 # WordPress env variables (example names; ensure your .env has these)
 WP_URL = os.getenv("WP_URL")                 # e.g. https://example.com
@@ -20,8 +19,8 @@ WP_USER = os.getenv("WP_USER")               # username (or email)
 WP_APP_PASSWORD = os.getenv("WP_APP_PASSWORD")  # application password
 
 # LLM configuration (ensure Google credentials are set in env as required by your lib)
-LLM_MODEL = os.getenv("LLM_MODEL", "gemini-2.5-flash")
-LLM_TEMPERATURE = float(os.getenv("LLM_TEMPERATURE", "0"))
+# LLM_MODEL = os.getenv("LLM_MODEL", "gemini-2.5-flash")
+# LLM_TEMPERATURE = float(os.getenv("LLM_TEMPERATURE", "0"))
 
 def slugify(text: str) -> str:
     """
@@ -37,7 +36,7 @@ def slugify(text: str) -> str:
     # Trim hyphens
     text = re.sub(r"^-+|-+$", "", text)
     # Limit length
-    return text[:120]
+    return text[:65]  # SEO best practice: keep URL slug under 65 characters
 
 def basic_auth_header(user: str, password: str) -> dict:
     token = base64.b64encode(f"{user}:{password}".encode()).decode("utf-8")
@@ -101,15 +100,18 @@ Output MUST be strict JSON (no extra prose) with these fields:
 }}
 
 Rules:
-- Focus keyword MUST appear in seo_title, seo_description, and url_slug.Focus keyword should be have 1.0 density in overall content.
-- seo_title length: 45–60 characters (aim inside this range).Title should contain power words like Amazing, Ultimate, Best, Complete, Proven, Guide etc., and at least one number like Top 10, 5 Ways, 3 Secrets etc.,
-- seo_description length: 120 characters.Make it sure does it contains 120  characters.
-- url_slug should be lowercase, hyphen-separated, short, readable and contain the focus keyword (no stop characters).It length should be under 65 characters.
+- **CRITICAL**: Generate 3-4 focus keywords (comma-separated, e.g., "ai technology, machine learning, artificial intelligence").
+- Each keyword must be 1-3 words, natural, trending with good search volume.
+- Primary keyword (first) MUST appear in: seo_title (at start), seo_description, url_slug, first 100 words.
+- All 3-4 keywords should appear throughout title, description, and content.
+- Combined keyword density should be ~1.0% across all keywords.
+- seo_title length: 45–60 characters. Must contain power words (Amazing, Ultimate, Best, Complete, Proven, Guide) and at least one number (Top 10, 5 Ways, 3 Secrets).
+- seo_description length: EXACTLY 120-160 characters. Must contain at least 2 of the focus keywords.
+- url_slug: lowercase, hyphen-separated, under 65 characters, contains primary keyword only.
 - Do not include HTML tags or entities in title/description.
-- If multiple keyword choices exist, pick the highest intent short-tail or mid-tail keyword.
-- Keep focus keyword short (1–4) and natural.That keyword should be in trend and have good search volume.2 or 3 keywords with comma separated.TO increase the SEO score.That 2 or 3 keywords should be in the title and description and url.
-- Keeps focus keyword density 1.0 in overall content.
-- keep seo_description length 120 characters or less
+- Pick high-intent short-tail or mid-tail keywords that complement each other.
+- Combined density for all 3-4 keywords should total ~1.0% in overall content.
+- Each keyword should appear 3-7 times naturally throughout the article.
 - Do not output anything other than the JSON object.
 
 You will be provided with a list of existing URL slugs from the website. 
@@ -124,93 +126,89 @@ Existing Slugs:
 you must select a different keyword variant to prevent focus keyword duplication errors in Rank Math.
 
 
-Mind it your are master security specialist and also expert in on page SEO and Rank Math plugin for wordpress.So you are the responsible high quality focus keywords 1-4 and description 120 characters or less and seo title 45-60 characters and slug under 65 characters.
-Dont forget check this. MInd it focus keyword should be in trend and have good search volume.
+CRITICAL REMINDERS:
+- OUTPUT FORMAT: "focus_keyword": "keyword1, keyword2, keyword3" (3-4 keywords, comma-separated)
+- All keywords must be trending with good search volume
+- seo_description: 120-160 characters (NOT less than 120)
+- seo_title: 45-60 characters with power word + number
+- url_slug: under 65 characters, primary keyword only
 """
 
 
 def validate_and_fix_seo_description(desc: str, focus_keyword: str, llm) -> str:
-    """
-    Ensures the SEO description length is between 120–160 characters
-    and contains the focus keyword. Regenerates via LLM if needed.
-    """
     MIN_LEN = 120
     MAX_LEN = 160
 
     def contains_keyword(text):
         return focus_keyword.lower() in text.lower()
 
-    # Already valid — return as is
     if MIN_LEN <= len(desc) <= MAX_LEN and contains_keyword(desc):
         return desc.strip()
 
-    # Build regeneration request
-    regen_prompt = f"""
+    # Format the messages as a dict for CrewAI
+    messages = [
+        {"role": "system", "content": "Return ONLY the rewritten description as plain text. No quotes, no conversational filler."},
+        {"role": "user", "content": f"""
         Rewrite the following SEO description:
         - Include the focus keyword: "{focus_keyword}"
         - Keep it between {MIN_LEN} and {MAX_LEN} characters
-        - Natural language, no quotes, no brackets
-        - Clear and compelling for search results
+        - Natural language, clear and compelling for search results
 
         Original:
         \"\"\"{desc}\"\"\"
-        """
+        """}
+    ]
 
     try:
-        regen_msg = llm.invoke([
-            ("system", "Return ONLY the rewritten description as plain text."),
-            ("human", regen_prompt)
-        ])
-        new_desc = regen_msg.content.strip()
+        # Use official CrewAI .call()
+        new_desc = llm.call(messages)
+        new_desc = new_desc.strip().strip('"').strip("'")
 
-        # Final strict validation
         if MIN_LEN <= len(new_desc) <= MAX_LEN and contains_keyword(new_desc):
             return new_desc
-
-        # Fallback soft trim
+            
         return (desc[:MAX_LEN].rstrip() + "...")
-
     except:
-        # Backup final fallback
         return (desc[:MAX_LEN].rstrip() + "...")
 
 
 def generate_seo_fields_from_html(llm, html_content: str) -> dict:
     """
-    Calls the LLM with HTML content and returns a dict with the SEO fields.
-    Returns fallback values if LLM fails.
+    Calls the CrewAI LLM with HTML content and returns a dict with the SEO fields.
     """
-
-    
+    # 1. Format messages EXACTLY as CrewAI/LiteLLM expects: A list of dictionaries.
     messages = [
-        ("system", SEO_SYSTEM_PROMPT),
-        ("human", html_content)
+        {"role": "system", "content": SEO_SYSTEM_PROMPT},
+        {"role": "user", "content": f"Article Content to Analyze:\n{html_content}"}
     ]
 
     print("➡️ Asking LLM for SEO suggestions...")
-    # Using llm.invoke pattern from your example
-    ai_msg = llm.invoke(messages)
-    raw = ai_msg.content if hasattr(ai_msg, "content") else str(ai_msg)
-
-    # Try to locate JSON substring in response in case LLM adds commentary (shouldn't)
+    
+    # 2. Use the official CrewAI .call() method
     try:
-        # If response is exactly JSON
-        seo = json.loads(raw)
+        raw = llm.call(messages)
+    except Exception as e:
+        print(f"⚠️ CrewAI LLM execution failed: {e}")
+        raw = ""
 
-    except Exception:
-        # try to extract the first {...} block
-        m = re.search(r"\{.*\}", raw, flags=re.DOTALL)
-        if m:
-            try:
-                seo = json.loads(m.group(0))
-            except Exception:
-                seo = None
-        else:
-            seo = None
+    # 3. Attempt to parse the JSON
+    seo = None
+    if raw:
+        try:
+            # If response is exactly JSON
+            seo = json.loads(raw)
+        except Exception:
+            # Try to extract the first {...} block
+            m = re.search(r"\{.*\}", raw, flags=re.DOTALL)
+            if m:
+                try:
+                    seo = json.loads(m.group(0))
+                except Exception:
+                    seo = None
 
+    # 4. Fallback logic if parsing fails entirely
     if not seo:
         print("⚠️ LLM did not return valid JSON. Building fallback SEO fields.")
-        # Fallback: extract title from HTML <title> or h1 and build simple fields
         soup = BeautifulSoup(html_content, "html.parser")
         title_tag = soup.find("title")
         h1_tag = soup.find("h1")
@@ -222,15 +220,15 @@ def generate_seo_fields_from_html(llm, html_content: str) -> dict:
             "seo_description": (soup.find("meta", attrs={"name":"description"}) or {}).get("content", "") or ((" ".join(soup.get_text().split())[:150] + "...") if soup.get_text() else ""),
             "url_slug": slugify(base_title)
         }
-    # Ensure fields exist and are strings
+
+    # 5. Ensure fields exist and are strings
     for k in ["focus_keyword", "seo_title", "seo_description", "url_slug"]:
         seo[k] = (seo.get(k) or "").strip()
-    # sanitize slug if LLM produced odd chars
+        
     seo["url_slug"] = slugify(seo["url_slug"] or seo["focus_keyword"] or seo["seo_title"])
 
     print("✅ SEO fields ready:", seo)
     return seo
-
 
 def upload_image_to_wordpress(local_image_path: str):
     """
@@ -264,13 +262,39 @@ def upload_image_to_wordpress(local_image_path: str):
         print(f"❌ Error uploading image: {e}")
     return None, None
 
-def replace_local_image_in_html(html_content: str, local_image_path: str, new_image_url: str):
+def remove_all_images_from_body(html_content: str):
+    """
+    Remove ALL <img> tags from the article body content.
+    This ensures only the featured/cover image is used, preventing duplicates.
+    """
+    soup = BeautifulSoup(html_content, "html.parser")
+    
+    # Find body tag
+    body_tag = soup.find("body")
+    if not body_tag:
+        # If no body tag, work with whole document
+        body_tag = soup
+    
+    # Remove all img tags and their parent figures if applicable
+    for img in body_tag.find_all("img"):
+        # Check if img is inside a figure
+        parent_figure = img.find_parent("figure")
+        if parent_figure:
+            parent_figure.decompose()
+        else:
+            img.decompose()
+    
+    print("✅ Removed all embedded images from article body (using featured image only)")
+    return str(soup)
+
+def replace_local_image_in_html(html_content: str, local_image_path: str, new_image_url: str, remove_image: bool = False):
     """
     Replace occurrences of local_image_path in <img src="..."> inside the body with new_image_url.
+    If remove_image=True, removes the image from body content entirely (use when image is featured image).
     Returns (title, body_html_with_replaced_image, original_seo_title, original_seo_description)
     """
     soup = BeautifulSoup(html_content, "html.parser")
-    normalized_local = local_image_path.replace("\\", "/").lstrip("./")
+    normalized_local = local_image_path.replace("\\", "/").lstrip("./") if local_image_path else ""
     # title extraction
     title_tag = soup.find("title")
     title = title_tag.string.strip() if title_tag and title_tag.string else None
@@ -283,33 +307,54 @@ def replace_local_image_in_html(html_content: str, local_image_path: str, new_im
         # if no body, use whole html as content
         body_html = str(soup)
     else:
-        # replace image tags that match the local path
+        # Find and handle image tags that match the local path
         imgs = body_tag.find_all("img", src=True)
         found = False
         for img in imgs:
             src = img["src"].replace("\\", "/")
-            if normalized_local.endswith(src) or src.endswith(normalized_local) or src == normalized_local:
-                img["src"] = new_image_url
+            if normalized_local and (normalized_local.endswith(src) or src.endswith(normalized_local) or src == normalized_local):
+                if remove_image:
+                    # Remove the entire figure/img element to avoid duplicate with featured image
+                    parent = img.find_parent("figure")
+                    if parent:
+                        parent.decompose()
+                    else:
+                        img.decompose()
+                else:
+                    img["src"] = new_image_url
                 found = True
-        if not found:
+                break  # Only handle first matching image
+        if not found and normalized_local:
             # attempt match by basename
             basename = os.path.basename(normalized_local)
             for img in imgs:
                 if os.path.basename(img["src"]) == basename:
-                    img["src"] = new_image_url
+                    if remove_image:
+                        parent = img.find_parent("figure")
+                        if parent:
+                            parent.decompose()
+                        else:
+                            img.decompose()
+                    else:
+                        img["src"] = new_image_url
                     found = True
+                    break
         if found:
-            print(f"✅ Replaced local image placeholder(s) with {new_image_url}")
+            if remove_image:
+                print(f"✅ Removed embedded image from body (will use featured image instead)")
+            else:
+                print(f"✅ Replaced local image placeholder(s) with {new_image_url}")
         else:
-            print("⚠️ Could not find matching <img> tag to replace.")
+            print("⚠️ Could not find matching <img> tag to replace/remove.")
         body_html = "".join(str(child) for child in body_tag.contents).strip()
 
     return title or "Untitled Post", body_html, title or None, seo_description or None
 
 
-def post_to_wordpress(title: str, content: str, focus_keyword: str, seo_title: str, seo_description: str, url_slug: str, media_id=None):
+def post_to_wordpress(title: str, content: str, focus_keyword: str, seo_title: str, seo_description: str, url_slug: str, media_id=None, noindex: bool = False):
     """
     Posts a draft to WordPress, sets Rank Math meta and slug, and optionally attaches featured image.
+    Set noindex=True for testing articles before indexing to Google.
     """
     if not all([WP_URL, WP_USER, WP_APP_PASSWORD]):
         print("❌ WordPress credentials (WP_URL, WP_USER, WP_APP_PASSWORD) not found.")
@@ -324,9 +369,13 @@ def post_to_wordpress(title: str, content: str, focus_keyword: str, seo_title: s
         "rank_math_focus_keyword": focus_keyword,
         "rank_math_title": seo_title,
         "rank_math_description": seo_description,
-         "_hide_featured_image": "1"
-        
+        "_hide_featured_image": "1"
     }
+    
+    # Add noindex meta for testing (prevents Google indexing)
+    if noindex:
+        meta_payload["rank_math_robots"] = ["noindex", "nofollow"]
+        print("⚠️ Article will be set to NOINDEX (for testing)")
 
     payload = {
         "title": seo_title,
@@ -402,6 +451,8 @@ def update_media_alt(media_id: int, alt_text: str):
         print(f"⚠️ Failed to update media ALT: {e}")
 
 
+# ... (Keep everything above wrap_images_in_figure exactly the same) ...
+
 def wrap_images_in_figure(html):
     soup = BeautifulSoup(html, "html.parser")
 
@@ -420,27 +471,101 @@ def wrap_images_in_figure(html):
 
     return str(soup)
 
+# ==================================================================
+# NEW: AGENTIC SEO REVISION LOOP FUNCTIONS
+# ==================================================================
 
-def process_and_publish(html_content: str, local_image_path: str = None):
+def auto_fix_seo_meta(llm, current_meta: dict, issues: list) -> dict:
+    """Uses the CrewAI LLM to fix SEO title and slug based on validation issues."""
+    prompt = f"""
+    You are an Expert SEO Editor.
+    The current SEO metadata failed validation with these issues:
+    {chr(10).join(issues)}
+
+    Current Metadata:
+    Title: {current_meta['seo_title']}
+    Focus Keyword: {current_meta['focus_keyword']}
+    Slug: {current_meta['url_slug']}
+
+    Rules:
+    - Ensure Title contains a power word (e.g., Ultimate, Best, Amazing, Proven, Guide).
+    - Ensure Title contains a number (e.g., 7 Ways, Top 10).
+    - Ensure Title length is between 45 and 60 characters.
+    - Ensure Slug is under 65 characters and contains the keyword.
+    - DO NOT change the focus keyword itself.
+
+    Return ONLY valid JSON:
+    {{
+        "seo_title": "...",
+        "url_slug": "..."
+    }}
     """
-    Full pipeline:
-    1. Generate SEO fields via LLM
-    2. Upload image (optional)
-    3. Replace image in HTML body
-    4. Insert CSS into <head>
-    5. Remove <h1>
-    6. Post to WP with RankMath fields
+    messages = [
+        {"role": "system", "content": "You output strict JSON only. No explanations, no markdown blocks."},
+        {"role": "user", "content": prompt}
+    ]
+    print("🔧 Agent fixing SEO Meta (Title/Slug)...")
+    try:
+        raw = llm.call(messages).strip()
+        if raw.startswith("```"):
+            raw = re.sub(r"^```json|^```|```$", "", raw, flags=re.MULTILINE).strip()
+        
+        data = json.loads(raw)
+        current_meta["seo_title"] = data.get("seo_title", current_meta["seo_title"])
+        if "url_slug" in data:
+            current_meta["url_slug"] = slugify(data["url_slug"])
+        return current_meta
+    except Exception as e:
+        print(f"⚠️ Meta auto-fix failed: {e}")
+        return current_meta
+
+
+def auto_fix_seo_html(llm, html_content: str, focus_keyword: str, issues: list) -> str:
+    """Uses the CrewAI LLM to rewrite parts of the HTML to fix density, links, and paragraph issues."""
+    prompt = f"""
+    You are an Expert SEO Editor. 
+    The following HTML article failed SEO validation with these specific issues:
+    {chr(10).join(issues)}
+
+    Focus Keyword: "{focus_keyword}"
+
+    Please modify the HTML to fix ONLY these issues:
+    - If keyword density is too low, naturally weave the focus keyword into existing paragraphs.
+    - If keyword density is too high, remove some instances naturally.
+    - If focus keyword is not in the first 100 words, update the first paragraph to include it natively.
+    - If paragraphs are too long (>120 words), split them into smaller <p> tags.
+    - If internal or external links are missing, wrap existing relevant text in <a> tags. 
+      (Use href='/blog/...' for internal, and href='https://...' with target='_blank' rel='noopener' for external).
+
+    CRITICAL RULES:
+    - RETURN THE ENTIRE HTML DOCUMENT. Do not truncate!
+    - DO NOT remove any existing images, Table of Contents (<nav>), or FAQ sections.
+    - Output ONLY the raw HTML code. Do not wrap in ```html or include explanations.
     """
+    messages = [
+        {"role": "system", "content": "You output strictly HTML code, nothing else."},
+        {"role": "user", "content": prompt + f"\n\nHTML Content:\n{html_content}"}
+    ]
+    print("🔧 Agent modifying HTML content to boost SEO density/links...")
+    try:
+        raw = llm.call(messages).strip()
+        if raw.startswith("```"):
+            raw = re.sub(r"^```html|^```|```$", "", raw, flags=re.MULTILINE).strip()
+        return raw
+    except Exception as e:
+        print(f"⚠️ HTML auto-fix failed: {e}")
+        return html_content
 
-    llm = ChatGoogleGenerativeAI(
-        model=LLM_MODEL,
-        temperature=LLM_TEMPERATURE,
-        max_tokens=None,
-        timeout=None,
-        max_retries=2
-    )
+# ==================================================================
+# MAIN PUBLISHING PIPELINE (UPDATED WITH REVISION LOOP)
+# ==================================================================
 
-    seo = generate_seo_fields_from_html(llm, html_content)
+def process_and_publish(html_content: str, local_image_path: str = None, noindex: bool = False, min_seo_score: int = 80, force_publish: bool = False):
+    from utils.seo_validator import validate_seo
+    
+    llm = ArticleGenerator()
+
+    seo = generate_seo_fields_from_html(llm.my_llm, html_content)
     focus_keyword = seo.get("focus_keyword", "")
     seo_title = seo.get("seo_title", "")
     seo_description = seo.get("seo_description", "")
@@ -450,56 +575,58 @@ def process_and_publish(html_content: str, local_image_path: str = None):
     media_id = None
     new_image_url = None
     if local_image_path:
-        media_id, new_image_url = upload_image_to_wordpress(local_image_path)
+        import re
+        match = re.search(r'(static[/\\]img[/\\][^\s*]+)', local_image_path)
+        if match:
+            clean_path = match.group(1).replace('*', '') 
+            print(f"🔍 Extracted clean image path: {clean_path}")
+            media_id, new_image_url = upload_image_to_wordpress(clean_path)
+        else:
+            media_id, new_image_url = upload_image_to_wordpress(local_image_path.strip())
 
-    # --- 3. Replace image links inside HTML ---
+    # --- 3. Replace/Remove image links inside HTML ---
     title, body_html, orig_seo_title, orig_seo_desc = replace_local_image_in_html(
         html_content,
         local_image_path or "",
-        new_image_url or ""
+        new_image_url or "",
+        remove_image=bool(media_id)
     )
 
     # Select final SEO metadata
     final_seo_title = seo_title or orig_seo_title or title
     final_seo_description = seo_description or orig_seo_desc or ""
     final_seo_description = validate_and_fix_seo_description(
-            final_seo_description,
-            focus_keyword,
-            llm
+            final_seo_description, focus_keyword, llm.my_llm
         )
     final_slug = slugify(url_slug or final_seo_title or title)
 
     # --- 4. SAFE BeautifulSoup processing ---
     soup = BeautifulSoup(body_html, "html.parser")
-
-    # Ensure <html> exists
     html_tag = soup.find("html")
     if not html_tag:
         new_html = soup.new_tag("html")
-
         body_wrapper = soup.new_tag("body")
         body_wrapper.append(soup)
-
         new_html.append(body_wrapper)
         soup = BeautifulSoup(str(new_html), "html.parser")
         html_tag = soup.find("html")
 
-    # Ensure <head> exists
     head_tag = soup.find("head")
     if not head_tag:
         head_tag = soup.new_tag("head")
         html_tag.insert(0, head_tag)
 
-    # Ensure <body> exists
     body_tag = soup.find("body")
     if not body_tag:
         body_tag = soup.new_tag("body")
         html_tag.append(body_tag)
 
-
     final_html = str(soup)
-
     final_html = wrap_images_in_figure(final_html)
+    
+    if media_id:
+        final_html = remove_all_images_from_body(final_html)
+        print("✅ Using featured image only, all body images removed")
 
     soup = BeautifulSoup(final_html, "html.parser")
     if media_id and focus_keyword:
@@ -510,23 +637,76 @@ def process_and_publish(html_content: str, local_image_path: str = None):
     final_html = fix_multiple_h1(final_html)
     final_html = str(soup)
     final_html = clean_html(final_html)
-
     soup = BeautifulSoup(final_html, "html.parser")
-
     final_html = str(soup)
 
+    # ==================================================================
+    # 5. SEO VALIDATION & AGENTIC AUTO-FIX LOOP
+    # ==================================================================
+    MAX_RETRIES = 2
+    current_html = final_html
+    current_seo_title = final_seo_title
+    current_slug = final_slug
+    
+    print("\n📊 Validating Initial SEO score...")
+    
+    for attempt in range(MAX_RETRIES + 1):
+        seo_result = validate_seo(current_html, focus_keyword, current_seo_title, current_slug)
+        
+        # Target accepted: if score >= min_seo_score (e.g., 80 or 85 based on your main.py config)
+        if seo_result["score"] >= min_seo_score:
+            print(f"\n✅ Target SEO score reached: {seo_result['score']}/100")
+            break
+            
+        if attempt < MAX_RETRIES:
+            print(f"\n⚠️ Score is {seo_result['score']}. Initiating Re-evaluation Loop (Attempt {attempt + 1}/{MAX_RETRIES})...")
+            issues = seo_result["issues"]
+            
+            # Check if Meta Title/Slug needs fixing
+            meta_issues = [i for i in issues if "title" in i.lower() or "slug" in i.lower()]
+            if meta_issues:
+                meta_payload = {"seo_title": current_seo_title, "focus_keyword": focus_keyword, "url_slug": current_slug}
+                fixed_meta = auto_fix_seo_meta(llm.my_llm, meta_payload, meta_issues)
+                current_seo_title = fixed_meta["seo_title"]
+                current_slug = fixed_meta["url_slug"]
+                
+            # Check if HTML needs fixing (Links, Density, Paragraphs)
+            html_issues = [i for i in issues if "title" not in i.lower() and "slug" not in i.lower()]
+            if html_issues:
+                current_html = auto_fix_seo_html(llm.my_llm, current_html, focus_keyword, html_issues)
+                current_html = fix_multiple_h1(current_html) # Ensure no duplicate H1s sneak back in
+        else:
+            if not force_publish:
+                print(f"\n❌ Final SEO Score {seo_result['score']} is still below target {min_seo_score} after {MAX_RETRIES} attempts.")
+                print("Use --force to publish anyway, or check the article manually.")
+                return {
+                    "seo": seo,
+                    "seo_validation": seo_result,
+                    "media_id": media_id,
+                    "post": None,
+                    "status": "blocked_by_seo"
+                }
+
+    # --- 6. Publish Final Validated Version ---
     posted = post_to_wordpress(
         title=title,
-        content=final_html,
+        content=current_html,
         focus_keyword=focus_keyword,
-        seo_title=final_seo_title,
+        seo_title=current_seo_title,
         seo_description=final_seo_description,
-        url_slug=final_slug,
-        media_id=media_id
+        url_slug=current_slug,
+        media_id=media_id,
+        noindex=noindex
     )
+
+    # Update the returned SEO dict with any fixed values
+    seo["seo_title"] = current_seo_title
+    seo["url_slug"] = current_slug
 
     return {
         "seo": seo,
+        "seo_validation": seo_result,
         "media_id": media_id,
-        "post": posted
+        "post": posted,
+        "status": "published" if posted else "failed"
     }

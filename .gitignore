@@ -26,9 +26,11 @@ chrome-debug.log
 /downloads/
 /reports/
 /logs/
+static/img/
 *.png
 *.jpg
 *.jpeg
+*.webp
 *.mp4
 
 # --- Security & Environment (CRITICAL) ---

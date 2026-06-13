@@ -12,7 +12,8 @@ from tools.image_search_tool import image_search_tool
 from tools.fetch_internal_links import get_all_internal_links
 
     
-KEY = os.getenv("GROQ_API_KEY")
+KEY = os.getenv("OPENAI_API_KEY")
+MODEL=os.getenv("MODEL")
 SERPER_API_KEY = os.getenv("SERPER_API_KEY")
 class ArticleGenerator:
     def __init__(self):
@@ -23,7 +24,7 @@ class ArticleGenerator:
         
         self.my_llm = LLM(
             api_key=KEY,
-            model="groq/llama-3.1-8b-instant",
+            model=MODEL,
             temperature=0.1
          )
 

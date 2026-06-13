@@ -1,0 +1,40 @@
+name: Auto-Publish SEO Articles
+
+on:
+  schedule:
+    # Runs at 00:00 UTC every 3 days
+    - cron: '0 0 */3 * *'
+  workflow_dispatch: # Allows you to manually trigger it from the GitHub Actions tab
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12' # Matches your local setup
+        cache: 'pip'
+
+    - name: Install Dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Create .env file
+      run: |
+        echo "OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}" >> .env
+        echo "MODEL=${{ secrets.MODEL }}" >> .env
+        echo "SERPER_API_KEY=${{ secrets.SERPER_API_KEY }}" >> .env
+        echo "WP_URL=${{ secrets.WP_URL }}" >> .env
+        echo "WP_USER=${{ secrets.WP_USER }}" >> .env
+        echo "WP_APP_PASSWORD=${{ secrets.WP_APP_PASSWORD }}" >> .env
+
+    - name: Run Pipeline
+      run: |
+        # Using --index so it publishes live instead of as a draft/noindex
+        python main.py --index
