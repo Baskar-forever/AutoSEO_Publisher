@@ -2,7 +2,7 @@
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![CI/CD](https://github.com/Baskar-forever/AutoSEO_Publisher/actions/workflows/auto_publish.yml/badge.svg)](https://github.com/Baskar-forever/AutoSEO_Publisher/actions)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 AutoSEO Publisher is an autonomous, agentic content pipeline that orchestrates LLM swarms to research, draft, optimize, and deploy production-ready SEO articles.
 
@@ -206,8 +206,6 @@ git push origin feature/AmazingFeature
 
 ---
 
-# License
+## 📄 License
 
-Distributed under the MIT License.
-
-See the LICENSE file for more information.
+This project is licensed under the MIT License - see the LICENSE file for details.
