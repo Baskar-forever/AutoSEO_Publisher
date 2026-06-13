@@ -81,7 +81,7 @@ Designed to run ephemerally on GitHub Actions Ubuntu runners with no persistent 
 ### Clone the Repository
 
 ```bash
-git clone https://github.com/yourusername/AutoSEO_Publisher.git
+git clone https://github.com/Baskar-forever/AutoSEO_Publisher.git
 cd AutoSEO_Publisher
 ```
 
