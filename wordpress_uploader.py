@@ -45,7 +45,7 @@ def basic_auth_header(user: str, password: str) -> dict:
 def get_all_internal_links():
     """
     Fetches all internal links from the given base URL."""
-    base_url = "https://readtechflow.com/"
+    base_url = os.getenv("WP_URL", "https://yourdomain.com/")
     visited = set()
     to_visit = {base_url}
     internal_links = set()
@@ -380,7 +380,7 @@ def post_to_wordpress(title: str, content: str, focus_keyword: str, seo_title: s
     payload = {
         "title": seo_title,
         "content": content,
-        "status": "draft",
+        "status": "publish",
         "meta": meta_payload,
         "slug": url_slug
     }

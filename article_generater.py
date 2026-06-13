@@ -15,6 +15,8 @@ from tools.fetch_internal_links import get_all_internal_links
 KEY = os.getenv("OPENAI_API_KEY")
 MODEL=os.getenv("MODEL")
 SERPER_API_KEY = os.getenv("SERPER_API_KEY")
+WP_URL = os.getenv("WP_URL", "https://yourwebsite.com")
+
 class ArticleGenerator:
     def __init__(self):
         # self.my_llm = LLM(
@@ -116,7 +118,7 @@ class ArticleGenerator:
         - Begin first sentence with focus keyword.
         - Use short paragraphs (< 120 words each).
         - Include transition words and active voice.
-        - Add internal link (/blog/…) and one external link (rel="noopener").for internal link use tool to fetch internal links.Use: 10-12 internal links. Must link to relevant existing articles from:https://readtechflow.com/.Use: 3-5 external links. CRITICAL: External links MUST point to REAL, EXISTING articles from HIGH-AUTHORITY websites (Reuters, CNBC, Wired, TechCrunch, ArsTechnica, The Verge, etc.). DO NOT use placeholder URLs like 'medium.com/@yourprofile' - these will fail validation. Verify links exist before including them.
+        - Add internal link (/blog/…) and one external link (rel="noopener").for internal link use tool to fetch internal links.Use: 10-12 internal links. Must link to relevant existing articles from:"""+WP_URL+""".Use: 3-5 external links. CRITICAL: External links MUST point to REAL, EXISTING articles from HIGH-AUTHORITY websites (Reuters, CNBC, Wired, TechCrunch, ArsTechnica, The Verge, etc.). DO NOT use placeholder URLs like 'medium.com/@yourprofile' - these will fail validation. Verify links exist before including them.
         - DO NOT include any <img> tags in the content. The cover image will be added separately as featured image.
 
         6️⃣ Headings
@@ -179,14 +181,14 @@ class ArticleGenerator:
 
         edit = Task(
             description=(
-                "1. Review and refine the written article.\n"
+                """1. Review and refine the written article.\n"""
                 "2. Fix grammar, tone, and flow.\n"
                 "3. Ensure it's ready for Medium publication."
                 "4. Check for internal and external links; add if missing."
                 "5. Overall content lenths should be between 1500 to 2000 words."
                 "6. CRITICAL: External links must be REAL, EXISTING articles from trusted sources (Reuters, CNBC, Wired, TechCrunch, ArsTechnica, The Verge, BBC, NYTimes, etc.). DO NOT use placeholder URLs. Verify each external link points to a real article."
-                "7. Include 10-12 internal links from https://readtechflow.com/ and 3-5 REAL external links to high-authority sources."
-                "8. Double-check that ALL external links are valid, working URLs to actual articles - NO placeholders, NO hypothetical links."
+                "7. Include 10-12 internal links from """+WP_URL+""" and 3-5 REAL external links to high-authority sources."
+                "8. Double-check that ALL external links are valid, working URLs to actual articles - NO placeholders, NO hypothetical links."""
                 
             ),
             expected_output="Final polished article ready for publication.",
@@ -230,7 +232,7 @@ class ArticleGenerator:
                 "placement, meta optimization, link strategy, readability, and structure."
             ),
             instructions=(
-                "You will receive a full HTML article and the Focus Keyword.\n"
+                """You will receive a full HTML article and the Focus Keyword.\n"
                 "Your task is to verify and if necessary, modify the HTML to ensure all the following requirements are met:\n\n"
                 "✅ Title :\n"
                 "- Under 60 characters.\n"
@@ -268,7 +270,7 @@ class ArticleGenerator:
 
                 "**Mind it we fetch focus keyword from final generated article by you so the focus keyword should be in beggining of the article and also in title,meta description,alt text,headings etc.That foucus keyword should have one 1 percentage density of overall artcile **"
                 "**Also Make Sure are you using sub headings h2 and h3 in article .Also make sure that article length should be between 1500 to 2000 words .**"
-                "**Dont forgot use get_all_internal_links tool to fetch internal links from https://readtechflow.com/ and use atleast 10-12 internal links and 3-5 external links in article.**"
+                "**Dont forgot use get_all_internal_links tool to fetch internal links from """+WP_URL+""" and use atleast 10-12 internal links and 3-5 external links in article.**"""
             ),
             allow_delegation=False,
             tools=[get_all_internal_links],

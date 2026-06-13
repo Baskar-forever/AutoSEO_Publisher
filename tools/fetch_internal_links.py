@@ -4,6 +4,9 @@ from bs4 import BeautifulSoup
 import time
 from crewai.tools import tool
 
+import os
+base_url = os.getenv("WP_URL", "https://yourdomain.com/")
+
 
 TOOL_ARGS_SCHEMA = {
     "type": "object",
@@ -18,7 +21,7 @@ TOOL_ARGS_SCHEMA = {
 def get_all_internal_links(dummy_arg: str = "dummy"):
     """
     Fetches all internal links from the given base URL."""
-    base_url = "https://readtechflow.com/"
+    
     visited = set()
     to_visit = {base_url}
     internal_links = set()

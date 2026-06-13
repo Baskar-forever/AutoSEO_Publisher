@@ -1,6 +1,7 @@
 import requests
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse
+import os
 
 AUTHORITY_DOMAINS = [
     "medium.com",
@@ -26,7 +27,7 @@ def check_url(url: str):
     except:
         return None, None
 
-def audit_and_fix_links(html: str, base_url="https://readtechflow.com"):
+def audit_and_fix_links(html: str, base_url=os.getenv("WP_URL", "https://yourdomain.com/")):
     soup = BeautifulSoup(html, "html.parser")
     site_domain = urlparse(base_url).netloc
 
