@@ -10,7 +10,7 @@ Built with CrewAI, the system features a deterministic validation middleware and
 
 ---
 
-## 🏗️ System Architecture
+## System Architecture
 
 ```mermaid
 graph TD
@@ -67,7 +67,7 @@ Designed to run ephemerally on GitHub Actions Ubuntu runners with no persistent 
 
 ---
 
-# 🚀 Quick Start
+# Quick Start
 
 ## Prerequisites
 
@@ -119,7 +119,7 @@ Populate the `.env` file with your credentials.
 
 ---
 
-# ⚙️ Configuration Schema
+# Configuration Schema
 
 | Variable | Description | Required |
 |-----------|-------------|-----------|
@@ -132,7 +132,7 @@ Populate the `.env` file with your credentials.
 
 ---
 
-# 🛠️ Deployment Lifecycle
+# Deployment Lifecycle
 
 ## Manual Execution
 
@@ -206,7 +206,7 @@ git push origin feature/AmazingFeature
 
 ---
 
-# 📄 License
+# License
 
 Distributed under the MIT License.
 
