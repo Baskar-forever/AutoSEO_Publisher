@@ -175,6 +175,16 @@ def audit_and_fix_links(
         if href.startswith(("mailto:", "tel:", "javascript:")):
             continue
 
+        # Skip LLM-hallucinated placeholder hrefs — remove entire parent <li> if present
+        if _is_placeholder_href(href):
+            parent = tag.parent
+            if parent and parent.name == "li":
+                parent.decompose()
+            else:
+                tag.decompose()
+            logger.info("🗑️  Removed placeholder link: %s", href)
+            continue
+
         # Fragment-only links → always keep (TOC anchors, etc.)
         if href.startswith("#"):
             continue
@@ -271,6 +281,27 @@ def audit_and_fix_links(
     )
     return str(soup), stats
 
+
+
+import re as _re
+
+def _is_placeholder_href(href: str) -> bool:
+    """Detect fake/hallucinated hrefs the LLM writes when it has no real URLs."""
+    if not href or href.strip() in ("#", "", "javascript:void(0)"):
+        return True
+    patterns = [
+        r"^\*{2,}",                  # starts with ***
+        r"^https?://example",          # example.com
+        r"internal[\s_-]?link",       # "internal-link" as href
+        r"^/blog/\.\.\.",           # /blog/...
+        r"#your-",                     # #your-section
+        r"placeholder",                # anything with placeholder
+        r"^your-",                     # your-slug
+    ]
+    for pat in patterns:
+        if _re.search(pat, href.strip(), _re.IGNORECASE):
+            return True
+    return False
 
 def _unwrap_preserving_text(tag) -> None:
     """

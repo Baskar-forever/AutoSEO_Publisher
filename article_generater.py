@@ -126,7 +126,6 @@ class ArticleGenerator:
 
         7️⃣ Extras
         - title should contain atleast one number & one power word.
-        - Add table of contents placeholder.
         - Conclude with CTA paragraph.
         - JSON-LD article schema at bottom.
 

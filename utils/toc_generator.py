@@ -82,9 +82,22 @@ def inject_toc(html_content: str) -> str:
     """
     Injects Table of Contents after the first paragraph or intro section.
     Also adds IDs to headings if missing.
+    Removes any existing TOC the LLM may have written to prevent duplicates.
     """
     soup = BeautifulSoup(html_content, "html.parser")
-    
+
+    # ── Remove any TOC the LLM already wrote (prevents double TOC) ──────────
+    for existing_toc in soup.find_all(["nav", "div", "section"]):
+        cls = " ".join(existing_toc.get("class", []))
+        heading = existing_toc.find(["h2", "h3", "p", "strong"])
+        heading_text = heading.get_text().strip().lower() if heading else ""
+        if "table-of-contents" in cls or "toc" in cls or "table of contents" in heading_text:
+            existing_toc.decompose()
+            print("🗑️  Removed duplicate TOC written by LLM")
+
+    html_content = str(soup)
+    soup = BeautifulSoup(html_content, "html.parser")
+
     # Generate TOC and update heading IDs
     toc_html = generate_toc(html_content)
     
