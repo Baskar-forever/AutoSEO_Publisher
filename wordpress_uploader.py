@@ -8,8 +8,10 @@ from dotenv import load_dotenv
 import time
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse
-from langchain_google_genai import ChatGoogleGenerativeAI
+# from langchain_google_genai import ChatGoogleGenerativeAI
 from article_generater import ArticleGenerator
+from utils.auto_categorizer import resolve_category_id
+
 
 load_dotenv()
 
@@ -360,7 +362,7 @@ def replace_local_image_in_html(html_content: str, local_image_path: str, new_im
     return title or "Untitled Post", body_html, title or None, seo_description or None
 
 
-def post_to_wordpress(title: str, content: str, focus_keyword: str, seo_title: str, seo_description: str, url_slug: str, media_id=None, noindex: bool = False):
+def post_to_wordpress(title: str, content: str, focus_keyword: str, seo_title: str, seo_description: str, url_slug: str, media_id=None, noindex: bool = False,category_id=None):
     """
     Posts a draft to WordPress, sets Rank Math meta and slug, and optionally attaches featured image.
     Set noindex=True for testing articles before indexing to Google.
@@ -395,6 +397,8 @@ def post_to_wordpress(title: str, content: str, focus_keyword: str, seo_title: s
     }
     if media_id:
         payload["featured_media"] = media_id
+
+    
 
     try:
         print(f"Posting article '{title}' to WordPress...")
@@ -695,6 +699,13 @@ def process_and_publish(html_content: str, local_image_path: str = None, noindex
                     "post": None,
                     "status": "blocked_by_seo"
                 }
+            
+    category_id = resolve_category_id(
+        title=title,
+        focus_keyword=focus_keyword,
+        html_content=current_html,
+        llm=llm.my_llm,
+    )
 
     # --- 6. Publish Final Validated Version ---
     posted = post_to_wordpress(
@@ -705,7 +716,8 @@ def process_and_publish(html_content: str, local_image_path: str = None, noindex
         seo_description=final_seo_description,
         url_slug=current_slug,
         media_id=media_id,
-        noindex=noindex
+        noindex=noindex,
+        category_id=category_id
     )
 
     # Update the returned SEO dict with any fixed values
