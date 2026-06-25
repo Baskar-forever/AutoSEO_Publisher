@@ -14,6 +14,7 @@ from utils.link_audit import audit_and_fix_links
 from utils.faq_injector import inject_faq_section
 from utils.image_optimizer import optimize_image
 from utils.toc_generator import inject_toc
+from utils.external_link_resolver import resolve_external_links
 from utils.topic_guard import (
     fetch_published_topics,
     is_duplicate_topic,
@@ -91,6 +92,10 @@ def run_pipeline(noindex: bool = True, force_publish: bool = False):
     # ── Step 2: Inject Table of Contents ──────────────────────────────────────
     print("\n📑 Step 2: Generating Table of Contents...")
     html_output = inject_toc(html_output)
+
+    # ── Step 2.5: Resolve fake external links with real Serper-verified URLs ──
+    print("\n🌐 Step 2.5: Resolving external links via Serper...")
+    html_output = resolve_external_links(html_output, article_topic=generated_title)
 
     # ── Step 3: Audit and Fix Links ───────────────────────────────────────────
     print("\n🔗 Step 3: Auditing and fixing links...")

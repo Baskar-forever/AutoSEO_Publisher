@@ -179,7 +179,8 @@ class ArticleGenerator:
         - Begin first sentence with focus keyword.
         - Use short paragraphs (< 120 words each).
         - Include transition words and active voice.
-        - ALWAYS call the get_all_internal_links tool FIRST to fetch real live URLs from """+WP_URL+""". Use ONLY the exact URLs returned by that tool as internal links — never invent or guess URLs. Use 10-12 internal links (exact URLs from tool) and 3-5 external links. External links MUST be REAL articles from high-authority sites (Reuters, CNBC, Wired, TechCrunch, ArsTechnica, The Verge). NO placeholder URLs, NO /blog/slug guesses.
+        - INTERNAL LINKS: Call get_all_internal_links tool first. Use ONLY exact URLs it returns. 10-12 internal links.
+        - EXTERNAL LINKS: Write 3-5 external links using DESCRIPTIVE ANCHOR TEXT only. Set href="SERPER_RESOLVE" as a placeholder — the pipeline will automatically replace it with a real verified URL from Google. Example: <a href="SERPER_RESOLVE" target="_blank" rel="noopener">how AI is changing outsourcing in India</a>. Do NOT invent URLs. Do NOT use example.com. Just write good anchor text.
         - DO NOT include any <img> tags in the content. The cover image will be added separately as featured image.
 
         6️⃣ Headings
