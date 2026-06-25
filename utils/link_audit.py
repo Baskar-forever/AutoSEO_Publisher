@@ -257,12 +257,25 @@ def audit_and_fix_links(
             continue
 
         # ── Internal link rules ───────────────────────────────────────────────
-        # Validate against known slugs when available
-        if known_slugs and not _is_known_internal(clean_url, known_slugs):
-            logger.info("✂️  Stripping internal 404 (not in WP REST) → %s", clean_url)
-            _unwrap_preserving_text(tag)
-            stats["stripped_internal_404"] += 1
-            continue
+        # Validate against known slugs — WP REST API is the ground truth.
+        # WordPress often returns 200 for guessed /blog/slug paths (redirects
+        # to blog index) so HTTP-200 alone is NOT sufficient for internal links.
+        if known_slugs:
+            if not _is_known_internal(clean_url, known_slugs):
+                logger.info("✂️  Stripping internal URL not in WP REST → %s", clean_url)
+                _unwrap_preserving_text(tag)
+                stats["stripped_internal_404"] += 1
+                continue
+        else:
+            # No WP REST data — fall back to strict: only allow URLs the
+            # crawler actually visited and confirmed (no /blog/ guesses).
+            import re as _re2
+            path = urlparse(clean_url).path
+            if _re2.search(r"^/blog/", path):
+                logger.info("✂️  Stripping unverified /blog/ path (no WP REST data) → %s", clean_url)
+                _unwrap_preserving_text(tag)
+                stats["stripped_internal_404"] += 1
+                continue
 
         tag["href"] = clean_url
         # Remove any accidental target/rel on internal links
@@ -297,6 +310,7 @@ def _is_placeholder_href(href: str) -> bool:
         r"#your-",                     # #your-section
         r"placeholder",                # anything with placeholder
         r"^your-",                     # your-slug
+        r"/blog/[a-z0-9-]+-(?:trends|growth|insights|strategies|guide|tips|news|review|analysis|updates)$",  # LLM-guessed /blog/topic-keyword paths
     ]
     for pat in patterns:
         if _re.search(pat, href.strip(), _re.IGNORECASE):

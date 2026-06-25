@@ -179,7 +179,7 @@ class ArticleGenerator:
         - Begin first sentence with focus keyword.
         - Use short paragraphs (< 120 words each).
         - Include transition words and active voice.
-        - Add internal link (/blog/…) and one external link (rel="noopener").for internal link use tool to fetch internal links.Use: 10-12 internal links. Must link to relevant existing articles from:"""+WP_URL+""".Use: 3-5 external links. CRITICAL: External links MUST point to REAL, EXISTING articles from HIGH-AUTHORITY websites (Reuters, CNBC, Wired, TechCrunch, ArsTechnica, The Verge, etc.). DO NOT use placeholder URLs like 'medium.com/@yourprofile' - these will fail validation. Verify links exist before including them.
+        - ALWAYS call the get_all_internal_links tool FIRST to fetch real live URLs from """+WP_URL+""". Use ONLY the exact URLs returned by that tool as internal links — never invent or guess URLs. Use 10-12 internal links (exact URLs from tool) and 3-5 external links. External links MUST be REAL articles from high-authority sites (Reuters, CNBC, Wired, TechCrunch, ArsTechnica, The Verge). NO placeholder URLs, NO /blog/slug guesses.
         - DO NOT include any <img> tags in the content. The cover image will be added separately as featured image.
 
         6️⃣ Headings

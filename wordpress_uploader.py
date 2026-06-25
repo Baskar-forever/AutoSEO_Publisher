@@ -551,7 +551,7 @@ def auto_fix_seo_html(llm, html_content: str, focus_keyword: str, issues: list) 
     - If focus keyword is not in the first 100 words, update the first paragraph to include it natively.
     - If paragraphs are too long (>120 words), split them into smaller <p> tags.
     - If internal or external links are missing, wrap existing relevant text in <a> tags. 
-      (Use href='/blog/...' for internal, and href='https://...' with target='_blank' rel='noopener' for external).
+      (For internal links, use ONLY exact URLs that exist on the site — never guess /blog/slug paths. For external links use href='https://...' with target='_blank' rel='noopener').
 
     CRITICAL RULES:
     - RETURN THE ENTIRE HTML DOCUMENT. Do not truncate!
