@@ -397,6 +397,9 @@ def post_to_wordpress(title: str, content: str, focus_keyword: str, seo_title: s
     }
     if media_id:
         payload["featured_media"] = media_id
+    
+    if category_id:
+        payload["categories"] = [category_id]
 
     
 
