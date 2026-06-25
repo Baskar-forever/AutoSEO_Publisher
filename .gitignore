@@ -22,7 +22,7 @@ yarn-error.log*
 chrome-debug.log
 
 # Generated Content (Don't clutter your repo with test posts)
-/screenshots/
+
 /downloads/
 /reports/
 /logs/

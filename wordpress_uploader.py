@@ -85,8 +85,11 @@ def get_all_internal_links():
 
     return internal_links
 
-existing_slugs = get_all_internal_links()
-SEO_SYSTEM_PROMPT = f"""
+# existing_slugs is fetched lazily inside generate_seo_fields_from_html()
+# to avoid a full site crawl on every module import (CI startup cost fix).
+_cached_slugs = None  # module-level cache so we only crawl once per process
+
+SEO_SYSTEM_PROMPT_TEMPLATE = """
 You are an expert SEO specialist trained in Rank Math and on-page optimization.
 
 Given an article’s HTML content, extract the topic and generate the following SEO outputs.
@@ -122,7 +125,7 @@ Choose a new keyword that is unique compared to all previously used keywords.
 
 If a keyword appears even partially in the slug list (example: "ai-mania" → avoid "ai mania", "ai boom", etc.), 
 Existing Slugs:
-{existing_slugs}
+{slug_list}
 you must select a different keyword variant to prevent focus keyword duplication errors in Rank Math.
 
 
@@ -176,9 +179,15 @@ def generate_seo_fields_from_html(llm, html_content: str) -> dict:
     """
     Calls the CrewAI LLM with HTML content and returns a dict with the SEO fields.
     """
+    # Lazy-fetch existing slugs once per process (avoids crawl on import)
+    global _cached_slugs
+    if _cached_slugs is None:
+        _cached_slugs = get_all_internal_links()
+    prompt = SEO_SYSTEM_PROMPT_TEMPLATE.format(slug_list=_cached_slugs)
+
     # 1. Format messages EXACTLY as CrewAI/LiteLLM expects: A list of dictionaries.
     messages = [
-        {"role": "system", "content": SEO_SYSTEM_PROMPT},
+        {"role": "system", "content": prompt},
         {"role": "user", "content": f"Article Content to Analyze:\n{html_content}"}
     ]
 

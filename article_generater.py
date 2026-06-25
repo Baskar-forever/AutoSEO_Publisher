@@ -101,7 +101,7 @@ class ArticleGenerator:
 
         1️⃣ Focus Keyword
         - Appears in: SEO title, meta description, URL slug, first paragraph, at least one sub-heading (H2–H4).
-        - Keyword density: 2–3 %.
+        - combined density ~1.0–1.5%.
         - Keyword or variation must appear at least 5 times in 1 000 words.
 
         2️⃣ Title
@@ -299,7 +299,7 @@ class ArticleGenerator:
         seo_expert_agent,seo_expert = self.seo_expert_agent()
         crew = Crew(
             agents=[trend_researcher, planner, editor, designer,writer,seo_expert_agent],
-            tasks=[discover_trend, plan, edit, design_banner,write,seo_expert],
+            tasks= [discover_trend, plan, write,edit, design_banner, seo_expert],
             verbose=True,
         )
 
