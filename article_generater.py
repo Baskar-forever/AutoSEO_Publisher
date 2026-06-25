@@ -31,32 +31,93 @@ class ArticleGenerator:
          )
 
     def trend_resarcher_agent(self):
+        import random
+        # Rotate content genres so every article has a different flavour.
+        # The LLM picks ONE topic from the chosen genre — keeping the blog fresh.
+        GENRE_WHEEL = [
+            # Genre label : what to tell the researcher
+            ("AI Deep-Dive",
+             "Pick a specific, surprising or controversial AI story from the last 7 days "
+             "(e.g. a model beating humans at a new task, a company pivot, a leaked benchmark). "
+             "Avoid generic 'AI is transforming X' angles."),
+
+            ("Funny / WTF Tech",
+             "Find a genuinely funny, absurd, or unbelievable tech story from this week — "
+             "a product fail, a viral bug, an eccentric startup idea, or a tech CEO meme moment. "
+             "Tone should be witty and entertaining, not dry."),
+
+            ("Startup & Money",
+             "Pick a trending startup funding round, acquisition, or founder story. "
+             "Focus on the human drama or contrarian business lesson, not just the numbers."),
+
+            ("How-To & Productivity",
+             "Identify a practical tool, workflow hack, or productivity technique that is "
+             "going viral among developers, designers, or knowledge workers right now."),
+
+            ("Tech Industry Drama",
+             "Find a current controversy, lawsuit, rivalry, or public spat in the tech world "
+             "(e.g. company vs regulator, CEO vs employees, open-source vs closed-source debate). "
+             "Readers love insider drama."),
+
+            ("Gadgets & Consumer Tech",
+             "Pick a newly launched or leaked consumer gadget, app, or platform feature "
+             "that people are excited or outraged about this week."),
+
+            ("Career & Future of Work",
+             "Find a trending topic about jobs, salaries, remote work, layoffs, or skills "
+             "in the tech industry. Frame it around what readers should *do* about it."),
+
+            ("Science Meets Tech",
+             "Pick a story where cutting-edge science intersects with technology — "
+             "biotech, space, climate tech, quantum computing breakthroughs, etc."),
+        ]
+
+        genre_label, genre_instruction = random.choice(GENRE_WHEEL)
+        print(f"\n🎯 Selected content genre: [{genre_label}]")
+
         trend_researcher = Agent(
             role="Trend Research Analyst",
-            goal="Identify current trending and high-interest topics across the web.",
+            goal=(
+                f"Find one highly engaging, shareable trending topic in the genre: '{genre_label}'. "
+                "The topic must be fresh (last 7 days), specific, and have a clear reader hook."
+            ),
             backstory=(
-                "You are responsible for scanning the latest global and tech news, "
-                "identifying topics that are currently popular and generating buzz. "
-                "You filter out irrelevant or overly niche trends and focus on those "
-                "that would perform well on Medium or similar blogging platforms."
-                "this articles should be taken from valid and authentic sources only like medium,reddit,news websites etc."
+                "You scan Reddit, Hacker News, TechCrunch, The Verge, Twitter/X trending, "
+                "and news aggregators daily. You have a journalist's nose for what will make "
+                "people click, share, and argue in the comments. "
+                "You avoid vague evergreen topics — you always anchor to a current event or "
+                "a real, specific thing happening RIGHT NOW. "
+                "Sources must be authentic: news sites, Reddit threads, official announcements."
             ),
             allow_delegation=False,
             verbose=True,
             tools=[trend_keyword_tool],
             llm=self.my_llm
         )
+
         discover_trend = Task(
-                description=(
-                    "1. Use available tools to identify currently trending topics.\n"
-                    "2. Choose one that is suitable for a Medium article (technology, AI, startups, productivity, etc.).\n"
-                    "3. Provide a short summary of why this topic is trending."
-                ),
-                expected_output="A single selected trending topic and a short explanation of its popularity.",
-                agent=trend_researcher,
-            )
-        
-        return trend_researcher,discover_trend
+            description=(
+                f"Content genre for today: **{genre_label}**\n\n"
+                f"Your mission: {genre_instruction}\n\n"
+                "Steps:\n"
+                "1. Use your search tools to find what is trending RIGHT NOW in this genre.\n"
+                "2. Choose ONE specific topic — not a broad category. "
+                "   Good: 'OpenAI fires safety team lead amid board drama' "
+                "   Bad: 'AI safety is important'\n"
+                "3. Confirm the topic has real search interest and fresh news hooks.\n"
+                "4. Write a 2-sentence brief: what the topic is + why readers will care today."
+            ),
+            expected_output=(
+                f"Genre: {genre_label}\n"
+                "Topic: [one specific, concrete trending topic]\n"
+                "Why now: [2 sentences explaining recency and reader appeal]\n"
+                "Suggested angle: [one punchy article framing — e.g. 'The insider story of...', "
+                "'5 things nobody is saying about...', 'Why X just changed everything about Y']"
+            ),
+            agent=trend_researcher,
+        )
+
+        return trend_researcher, discover_trend
     
     def planner_agent(self):
         planner = Agent(
